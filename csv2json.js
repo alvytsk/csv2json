@@ -4,8 +4,8 @@ import { join, resolve } from "path";
 
 const { StringStream } = scramjet;
 
-let csvFilename = 'test.csv';
-let jsonFilename = 'test.json';
+let csvFilename = 'output/test.csv';
+let jsonFilename = 'output/test.json';
 
 if(process.argv.length > 2) {
     csvFilename = process.argv[2];
