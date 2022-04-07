@@ -1,8 +1,10 @@
 import scramjet from "scramjet";
 import { createReadStream, createWriteStream } from "fs";
-import { join, resolve } from "path";
+import { join, parse, resolve } from "path";
+import jsonExt from '@discoveryjs/json-ext'
 
-const { StringStream } = scramjet;
+const { StringStream, DataStream } = scramjet;
+const { parseChunked } = jsonExt;
 
 let csvFilename = 'output/test.csv';
 let jsonFilename = 'output/test.json';
@@ -15,14 +17,27 @@ if(process.argv.length > 2) {
     }
 }
 
-const parseChunk = chunk => {
-    return chunk.slice(4);
+const dataParser = async (chunk) => {
+
+    return chunk;
 }
 
-StringStream
-    .from(createReadStream(join(resolve(), csvFilename))) // open file stream
-    .CSVParse() //get chunk
-    .map(parseChunk) //do some transformations
-    .toJSONArray() //transform to json
-    .pipe(createWriteStream(join(resolve(), jsonFilename))) // write chunk to output stream
+async function csv2JsonParser(inputStream) {
+    return StringStream
+        .from(inputStream)
+        .CSVParse()
+        .map(dataParser)
+        .toJSONArray();
+}
 
+const inputStream = createReadStream(join(resolve(), csvFilename));
+const outputStream = createWriteStream(join(resolve(), jsonFilename));
+
+let count = 0;
+
+parseChunked(StringStream.from(csv2JsonParser(inputStream))).then(data => {
+    console.log(count++);
+    console.log(data);
+
+    outputStream.write();
+})
