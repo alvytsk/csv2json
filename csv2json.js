@@ -4,7 +4,7 @@ import { join, parse, resolve } from "path";
 import jsonExt from '@discoveryjs/json-ext'
 
 const { StringStream, DataStream } = scramjet;
-const { parseChunked } = jsonExt;
+const { stringifyStream } = jsonExt;
 
 let csvFilename = 'output/test.csv';
 let jsonFilename = 'output/test.json';
@@ -17,27 +17,36 @@ if(process.argv.length > 2) {
     }
 }
 
-const dataParser = async (chunk) => {
+const reducer = (prev, cur) => {
+    const updated = cur.reduce(function (prev, curr, idx, arr) {
+        const key = 'i' + idx;
+        const data = prev.data;
+        data.push({
+            [key]: curr,
+        })
+        return {
+            data,
+        }
+    }, { total: 0, data: [] });
 
-    return chunk;
+
+    const newData = prev;
+    newData.data?.push(updated.data);
+    newData.total += Number(cur[1]);
+
+    return newData;
 }
 
-async function csv2JsonParser(inputStream) {
-    return StringStream
-        .from(inputStream)
+async function csv2JsonParser(input) {
+    const data = await StringStream
+        .from(input)
         .CSVParse()
-        .map(dataParser)
-        .toJSONArray();
+        .reduce(reducer, { total: 0, data: [] });
+
+    return stringifyStream(data);
 }
 
 const inputStream = createReadStream(join(resolve(), csvFilename));
 const outputStream = createWriteStream(join(resolve(), jsonFilename));
 
-let count = 0;
-
-parseChunked(StringStream.from(csv2JsonParser(inputStream))).then(data => {
-    console.log(count++);
-    console.log(data);
-
-    outputStream.write();
-})
+csv2JsonParser(inputStream).then(data => data.pipe(outputStream));
