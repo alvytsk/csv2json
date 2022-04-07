@@ -1,18 +1,36 @@
 import { createReadStream, createWriteStream } from "fs";
 import stream from 'stream';
+import jsonExt from '@discoveryjs/json-ext'
+
+const { parseChunked } = jsonExt;
 
 function parseCsv(readStream) {
-    let sum = 0;
     let unprocessed = '';
 
     const output = new stream.Duplex({
         write: function(chunk, encoding, next) {
-            console.log('\n>>>', chunk.toString(), '<<<\n');
-            this.push(chunk);
+            const arr = chunk
+                        .toString()
+                        .split(',')
+                        .reduce(function (prev, curr, idx, arr) {
+                            const key = 'i' + idx;
+                            const data = prev.data;
+                            const total = idx === 1 ? arr[1] : prev.total;
+                            data.push({
+                                [key]: curr,
+                            })
+                            return {
+                                total,
+                                data,
+                            }
+                        }, { total: 0, data: [] });
+
+            console.log('\n>>>', arr, '<<<\n');
+            this.push(JSON.stringify(arr));
             next();
         },
 
-        read: function( size ) {}
+        read: function() {}
       });
 
     const parseRead = chunk => {
@@ -39,4 +57,10 @@ function parseCsv(readStream) {
     return output;
 }
 
-parseCsv(createReadStream('output/test.csv')).pipe(process.stdout);
+const parsedStream = parseCsv(createReadStream('output/test.csv'));
+
+// parsedStream.pipe(process.stdout);
+
+parseChunked(parsedStream).then(data => {
+    console.log(data);
+});
