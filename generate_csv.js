@@ -2,23 +2,22 @@ import { generate } from 'csv-generate';
 import fs from 'fs';
 import path from 'path';
 
-var rowCount = 15;
-var outputFilename = null;
+const rowCount = process.argv[2] ? Number(process.argv[2]) : 15;
+const columnCount = process.argv[3] ? Number(process.argv[3]) : 10;
+const outputFilename = process.argv[4] ? process.argv[4] : '';
 
-if(process.argv.length > 2) {
-    rowCount = Number(process.argv[2]);
-
-    if(process.argv.length > 3) {
-        outputFilename = process.argv[3];
-    }
+Array.prototype.random = function () {
+  return this[Math.floor((Math.random()*this.length))];
 }
+
+const columns = [...Array(columnCount)].map(() => ['int', 'bool', 'ascii'].random());
 
 const dest = outputFilename 
                 ? fs.createWriteStream(path.join(path.resolve(), outputFilename))
                 : process.stdout 
 
 generate({
-  columns: ['int', 'bool', 'ascii', 'ascii', 'int', 'bool', 'ascii'],
+  columns: columns,
   length: rowCount
 })
   .pipe(dest);
