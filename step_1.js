@@ -44,5 +44,6 @@ StringStream
     .whenEnd()
     .then(() => {
         timer('JSON generated');
-        printFileStats(jsonFilename, 'Output');
+        // have to wait to get fs update the file
+        setTimeout(() => { printFileStats(jsonFilename, 'Output') }, 100);
     })
